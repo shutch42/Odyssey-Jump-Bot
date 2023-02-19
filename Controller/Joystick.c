@@ -139,27 +139,9 @@ void HID_Task(void) {
 	}
 }
 
-typedef enum {
-	SYNC_CONTROLLER,
-	SYNC_POSITION,
-	JUMP,
-	STOP_X,
-	STOP_Y,
-	MOVE_X,
-	MOVE_Y,
-	DONE
-} State_t;
-State_t state = SYNC_CONTROLLER;
-
 #define ECHOES 2
 int echoes = 0;
 USB_JoystickReport_Input_t last_report;
-
-int report_count = 0;
-int xpos = 0;
-int ypos = 0;
-int portsval = 0;
-
 
 // Prepare the next report for the host.
 void GetNextReport(USB_JoystickReport_Input_t* const ReportData) {
@@ -180,10 +162,11 @@ void GetNextReport(USB_JoystickReport_Input_t* const ReportData) {
 		return;
 	}
 	if ((PIND & 0x80) == 0x80) {
-		// Send jump command
+		// If signal is received on pin 7, press the A button
 		ReportData->Button |= SWITCH_A;
 	}
 	// Prepare to echo this report
 	memcpy(&last_report, ReportData, sizeof(USB_JoystickReport_Input_t));
 	echoes = ECHOES;
 }
+
