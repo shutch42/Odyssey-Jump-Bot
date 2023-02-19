@@ -1,0 +1,3 @@
+[submodule "Controller/lufa"]
+	path = Controller/lufa
+	url = git@github.com:abcminiuser/lufa.git
