@@ -37,6 +37,8 @@
 #define _JOYSTICK_H_
 
 /* Includes: */
+// #define __DELAY_BACKWARD_COMPATIBLE__
+// #include <util/delay.h>
 #include <avr/io.h>
 #include <avr/wdt.h>
 #include <avr/power.h>

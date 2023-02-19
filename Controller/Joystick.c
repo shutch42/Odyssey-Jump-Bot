@@ -34,6 +34,7 @@ int main(void) {
 	SetupHardware();
 	// We'll then enable global interrupts for our use.
 	GlobalInterruptEnable();
+
 	// Once that's done, we'll enter an infinite loop.
 	for (;;)
 	{
@@ -58,11 +59,11 @@ void SetupHardware(void) {
 	// Both PORTD and PORTB will be used for the optional LED flashing and buzzer.
 	#warning LED and Buzzer functionality enabled. All pins on both PORTB and \
 PORTD will toggle when printing is done.
-	DDRD  = 0xFF; //Teensy uses PORTD
-	PORTD =  0x0;
+	DDRD  = 0x7F; // Set pin 7 as input
+	PORTD =  0x00;
                   //We'll just flash all pins on both ports since the UNO R3
 	DDRB  = 0xFF; //uses PORTB. Micro can use either or, but both give us 2 LEDs
-	PORTB =  0x0; //The ATmega328P on the UNO will be resetting, so unplug it?
+	PORTB =  0x00; //The ATmega328P on the UNO will be resetting, so unplug it?
 	#endif
 	// The USB stack should be initialized last.
 	USB_Init();
@@ -73,7 +74,7 @@ void EVENT_USB_Device_Connect(void) {
 	// We can indicate that we're enumerating here (via status LEDs, sound, etc.).
 }
 
-// Fired to indicate that the device is no longer connected to a host.
+// Fired to indicate that the device is no longer connected to a host.  void EVENT_USB_Device_Disconnect(void) {
 void EVENT_USB_Device_Disconnect(void) {
 	// We can indicate that our device is not ready (via status LEDs, sound, etc.).
 }
@@ -141,6 +142,7 @@ void HID_Task(void) {
 typedef enum {
 	SYNC_CONTROLLER,
 	SYNC_POSITION,
+	JUMP,
 	STOP_X,
 	STOP_Y,
 	MOVE_X,
@@ -158,6 +160,7 @@ int xpos = 0;
 int ypos = 0;
 int portsval = 0;
 
+
 // Prepare the next report for the host.
 void GetNextReport(USB_JoystickReport_Input_t* const ReportData) {
 
@@ -168,7 +171,7 @@ void GetNextReport(USB_JoystickReport_Input_t* const ReportData) {
 	ReportData->RX = STICK_CENTER;
 	ReportData->RY = STICK_CENTER;
 	ReportData->HAT = HAT_CENTER;
-
+		
 	// Repeat ECHOES times the last report
 	if (echoes > 0)
 	{
@@ -176,94 +179,11 @@ void GetNextReport(USB_JoystickReport_Input_t* const ReportData) {
 		echoes--;
 		return;
 	}
-
-	// States and moves management
-	switch (state)
-	{
-		case SYNC_CONTROLLER:
-			if (report_count > 100)
-			{
-				report_count = 0;
-				state = SYNC_POSITION;
-			}
-			else if (report_count == 25 || report_count == 50)
-			{
-				ReportData->Button |= SWITCH_L | SWITCH_R;
-			}
-			else if (report_count == 75 || report_count == 100)
-			{
-				ReportData->Button |= SWITCH_A;
-			}
-			report_count++;
-			break;
-		case SYNC_POSITION:
-			if (report_count == 250)
-			{
-				report_count = 0;
-				xpos = 0;
-				ypos = 0;
-				state = STOP_X;
-			}
-			else
-			{
-				// Moving faster with LX/LY
-				ReportData->LX = STICK_MIN;
-				ReportData->LY = STICK_MIN;
-			}
-			if (report_count == 75 || report_count == 150)
-			{
-				// Clear the screen
-				ReportData->Button |= SWITCH_MINUS;
-			}
-			report_count++;
-			break;
-		case STOP_X:
-			state = MOVE_X;
-			break;
-		case STOP_Y:
-			if (ypos < 120 - 1)
-				state = MOVE_Y;
-			else
-				state = DONE;
-			break;
-		case MOVE_X:
-			if (ypos % 2)
-			{
-				ReportData->HAT = HAT_LEFT;
-				xpos--;
-			}
-			else
-			{
-				ReportData->HAT = HAT_RIGHT;
-				xpos++;
-			}
-			if (xpos > 0 && xpos < 320 - 1)
-				state = STOP_X;
-			else
-				state = STOP_Y;
-			break;
-		case MOVE_Y:
-			ReportData->HAT = HAT_BOTTOM;
-			ypos++;
-			state = STOP_X;
-			break;
-		case DONE:
-			#ifdef ALERT_WHEN_DONE
-			portsval = ~portsval;
-			PORTD = portsval; //flash LED(s) and sound buzzer if attached
-			PORTB = portsval;
-			_delay_ms(250);
-			#endif
-			return;
+	if ((PIND & 0x80) == 0x80) {
+		// Send jump command
+		ReportData->Button |= SWITCH_A;
 	}
-
-	// Inking
-	if (state != SYNC_CONTROLLER && state != SYNC_POSITION)
-		if (pgm_read_byte(&(image_data[(xpos / 8) + (ypos * 40)])) & 1 << (xpos % 8))
-			ReportData->Button |= SWITCH_A;
-
 	// Prepare to echo this report
 	memcpy(&last_report, ReportData, sizeof(USB_JoystickReport_Input_t));
 	echoes = ECHOES;
-
 }
