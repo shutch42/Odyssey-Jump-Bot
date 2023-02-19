@@ -22,11 +22,11 @@ void loop() {
   }
   if(jumping) {
     // Press the A Button for 100 ms
-    digitalWrite(13, HIGH);
+    digitalWrite(JUMP, HIGH);
     delay(100);
     
     // Release A button and wait for next jump
-    digitalWrite(13, LOW);
+    digitalWrite(JUMP, LOW);
     delay(delay_time);
     
     // Depending on the current jump number, change the delay time
