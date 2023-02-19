@@ -6,21 +6,30 @@ int jump_count = 0;
 int jumping = 0;
 
 void setup() {
+  // Connect button on pin 7
   pinMode(BUTTON, INPUT);
+
+  // Attach second arduino (controller) via pin 13
   pinMode(JUMP, OUTPUT);
 }
 
 void loop() {
   if(digitalRead(BUTTON)) {
+    // On button press, reset delay and start jumping
     delay_time = 1067;
     jump_count = 0;
     jumping = 1;
   }
   if(jumping) {
+    // Press the A Button for 100 ms
     digitalWrite(13, HIGH);
     delay(100);
+    
+    // Release A button and wait for next jump
     digitalWrite(13, LOW);
     delay(delay_time);
+    
+    // Depending on the current jump number, change the delay time
     jump_count++;
     switch(jump_count) {
       case 5:
